@@ -2,6 +2,7 @@ import sys
 import json
 import uuid
 import shutil
+import requests
 from pathlib import Path
 from typing import Optional
 
@@ -113,17 +114,29 @@ class EmojiClipboardApp(QMainWindow):
 
     def _save_meta(self, data: dict):
         tmp = self.meta_file.with_suffix(".tmp")
+        print(data)
         with tmp.open("w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         tmp.replace(self.meta_file)
 
-    def _persist_add(self, source_path: Path, text: str, filename: str) -> Optional[Path]:
+    """ def _persist_add(self, source_path: Path, text: str, filename: str) -> Optional[Path]:
         try:
             ext = source_path.suffix.lower() or ".png"
             dest_name = f"{filename}"
             dest = self.images_dir / dest_name
             shutil.copy2(source_path, dest)
             self.meta[dest_name] = {"text": text, "filename": filename}
+            self._save_meta(self.meta)
+            return dest
+        except Exception as e:
+            QMessageBox.critical(self, "Save Error", f"Failed to store image: {e}")
+            return None """
+        
+    def _persist_add(self, text: str, link: str) -> Optional[Path]:
+        try:
+            dest_name = f"{text}"
+            dest = self.images_dir / dest_name
+            self.meta[f'{text}.webp'] = {"text": link, "filename": f'{text}.webp'}
             self._save_meta(self.meta)
             return dest
         except Exception as e:
@@ -158,16 +171,16 @@ class EmojiClipboardApp(QMainWindow):
 
     # ---- Core Behaviors ----
     def add_images(self):
-        files, _ = QFileDialog.getOpenFileNames(
+        """ files, _ = QFileDialog.getOpenFileNames(
             self,
             "Select image files",
             str(Path.home()),
             "Images (*.png *.jpg *.jpeg *.webp *.bmp *.gif)"
         )
         if not files:
-            return
+            return """
 
-        added = 0
+        """ added = 0
         for path_str in files:
             src = Path(path_str)
             if not src.exists():
@@ -184,10 +197,25 @@ class EmojiClipboardApp(QMainWindow):
             stored = self._persist_add(src, text, src.stem)
             if stored:
                 self._add_emoji_item(stored, src.stem)
-                added += 1
+                added += 1 """
+        
+        text = QInputDialog.getText(
+                self,
+                "Associated Text",
+                f"Enter the ID of the emoji to copy",
+                text="",
+            )
 
-        if added:
-            self.statusBar().showMessage(f"Added {added} item(s). Click an image to copy its text.", 3000)
+        img_data = requests.get(f'https://cdn.discordapp.com/emojis/{text[0]}.webp?size=56').content
+        with open(f'./emoji_gallery/images/{text[0]}.webp', 'wb') as handler:
+            handler.write(img_data)
+
+        stored = self._persist_add(text[0], f'https://cdn.discordapp.com/emojis/{text[0]}.webp?size=56')
+        if stored:
+            self._add_emoji_item(stored, text[0])
+
+        """ if added:
+            self.statusBar().showMessage(f"Added {added} item(s). Click an image to copy its text.", 3000) """
 
     def _add_emoji_item(self, image_path: Path, text: str):
         pix = QPixmap(str(image_path))
@@ -204,7 +232,7 @@ class EmojiClipboardApp(QMainWindow):
 
     def copy_item_text(self, item: QListWidgetItem):
         for filename, payload in list(self.meta.items()):
-            if item.text() == filename:
+            if f'{item.text()}.webp' == filename or item.text() == filename:
                 text = (payload or {}).get("text") or Path(filename).stem
         QApplication.clipboard().setText(text)
         self.statusBar().showMessage(f"Copied to clipboard: {text}", 2000)
