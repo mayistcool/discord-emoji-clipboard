@@ -114,7 +114,6 @@ class EmojiClipboardApp(QMainWindow):
 
     def _save_meta(self, data: dict):
         tmp = self.meta_file.with_suffix(".tmp")
-        print(data)
         with tmp.open("w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         tmp.replace(self.meta_file)
@@ -223,16 +222,16 @@ class EmojiClipboardApp(QMainWindow):
             QMessageBox.warning(self, "Invalid image", f"Could not load: {image_path}")
             return
         icon = QIcon(pix)
-        item = QListWidgetItem(icon, text)
+        item = QListWidgetItem(icon, "")
         # Store the clipboard text and stored path in roles
         item.setData(Qt.ItemDataRole.UserRole, text)
         item.setData(Qt.ItemDataRole.UserRole + 1, str(image_path))
-        item.setSizeHint(QSize(80, 80))
+        item.setSizeHint(QSize(60, 60))
         self.list.addItem(item)
 
     def copy_item_text(self, item: QListWidgetItem):
         for filename, payload in list(self.meta.items()):
-            if f'{item.text()}.webp' == filename or item.text() == filename:
+            if f'{item.data(Qt.ItemDataRole.UserRole)}.webp' == filename or item.data(Qt.ItemDataRole.UserRole) == filename:
                 text = (payload or {}).get("text") or Path(filename).stem
         QApplication.clipboard().setText(text)
         self.statusBar().showMessage(f"Copied to clipboard: {text}", 2000)
