@@ -217,7 +217,9 @@ class EmojiClipboardApp(QMainWindow):
     def add_images(self):
         dialog = TextWithCheckbox()
         if dialog.exec():
-            text, checked = dialog.get_data()
+            text, checked= dialog.get_data()
+        else:
+            return
 
         link = self.create_link(text, checked)
 
