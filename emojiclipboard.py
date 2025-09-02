@@ -67,19 +67,13 @@ class TextWithCheckbox(QDialog):
 
 
 class EmojiClipboardApp(QMainWindow):
-    """
-    Emoji gallery that persists items between runs.
-    - Stores copies of images in ./emoji_gallery/images
-    - Stores metadata (image filename -> text) in ./emoji_gallery/metadata.json
-    - Loads and displays everything on startup.
-    """
-
+    
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Emojis")
         self.resize(229, 600)
 
-        self.setWindowIcon(QIcon("discordcliboardicon.ico"))
+        self.setWindowIcon(QIcon("./assets/discordcliboardicon.ico"))
 
         # --- Storage paths ---
         self.base_dir = Path.cwd() / "emoji_gallery"
@@ -220,41 +214,6 @@ class EmojiClipboardApp(QMainWindow):
 
     # ---- Core Behaviors ----
     def add_images(self):
-        """ files, _ = QFileDialog.getOpenFileNames(
-            self,
-            "Select image files",
-            str(Path.home()),
-            "Images (*.png *.jpg *.jpeg *.webp *.bmp *.gif)"
-        )
-        if not files:
-            return """
-
-        """ added = 0
-        for path_str in files:
-            src = Path(path_str)
-            if not src.exists():
-                continue
-            # Ask text per image, default to stem
-            text, ok = QInputDialog.getText(
-                self,
-                "Associated Text",
-                f"Enter the text to copy when this image is clicked:\n{src.name}",
-                text=src.stem,
-            )
-            if not ok:
-                continue
-            stored = self._persist_add(src, text, src.stem)
-            if stored:
-                self._add_emoji_item(stored, src.stem)
-                added += 1 """
-        
-        """ text = QInputDialog.getText(
-                self,
-                "Associated Text",
-                f"Enter the ID of the emoji to copy",
-                text="",
-            ).setOption() """
-
         dialog = TextWithCheckbox()
         if dialog.exec():
             text, checked = dialog.get_data()
@@ -264,10 +223,6 @@ class EmojiClipboardApp(QMainWindow):
         stored = self._persist_add(text, link)
         if stored:
             self._add_emoji_item(stored, text)
-
-        """ if added:
-            self.statusBar().showMessage(f"Added {added} item(s). Click an image to copy its text.", 3000) """
-
 
     def create_link(self, id: int, checked: bool):
             link = f'https://cdn.discordapp.com/emojis/{id}.webp?size=48'
@@ -322,21 +277,6 @@ class EmojiClipboardApp(QMainWindow):
             self.list.clear()
             self.statusBar().showMessage("Cleared all items.", 2000)
 
-    """ def edit_text(self, item: QListWidgetItem):
-            # Ask text per image, default to stem
-        text, ok = QInputDialog.getText(
-            self,
-            "Associated Text",
-            f"Enter the text to copy when this image is clicked:\n{item.text()}",
-            text=item.text(),
-        )
-   
-        self.meta[item.text()] = {"text": text, "filename": item.text()}
-        self._save_meta(self.meta) """
-        
-
-        
-
     # ---- Context Menu ----
     def show_context_menu(self, pos):
         item = self.list.itemAt(pos)
@@ -347,10 +287,6 @@ class EmojiClipboardApp(QMainWindow):
         menu.addAction(add_action)
 
         if item:
-            #edit_action = QAction("Edit Text", self)
-            #edit_action.triggered.connect(self.edit_text(item))
-            #menu.addAction(edit_action)
-
             copy_action = QAction("Copy Text", self)
             copy_action.triggered.connect(lambda: self.copy_item_text(item))
             menu.addAction(copy_action)
