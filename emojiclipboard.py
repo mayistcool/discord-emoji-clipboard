@@ -25,7 +25,42 @@ from PyQt6.QtWidgets import (
     QToolBar,
     QVBoxLayout,
     QWidget,
+    QDialog,
+    QLineEdit,
+    QCheckBox,
+    QDialogButtonBox
 )
+
+class TextWithCheckbox(QDialog):
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Enter an ID")
+
+        layout = QVBoxLayout(self)
+
+        self.label = QLabel(
+            "Enter the ID of the discord emoji you want to add:"
+        )
+        layout.addWidget(self.label)
+
+        self.text_input = QLineEdit(self)
+        layout.addWidget(self.text_input)
+
+        self.check_box = QCheckBox("GIF", self)
+        layout.addWidget(self.check_box)
+
+        self.buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+            self
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+        layout.addWidget(self.buttons)
+
+
+    def get_data(self):
+        return self.text_input.text(), self.check_box.isChecked()
 
 
 class EmojiClipboardApp(QMainWindow):
@@ -198,23 +233,36 @@ class EmojiClipboardApp(QMainWindow):
                 self._add_emoji_item(stored, src.stem)
                 added += 1 """
         
-        text = QInputDialog.getText(
+        """ text = QInputDialog.getText(
                 self,
                 "Associated Text",
                 f"Enter the ID of the emoji to copy",
                 text="",
-            )
+            ).setOption() """
 
-        img_data = requests.get(f'https://cdn.discordapp.com/emojis/{text[0]}.webp?size=56').content
-        with open(f'./emoji_gallery/images/{text[0]}.webp', 'wb') as handler:
-            handler.write(img_data)
+        dialog = TextWithCheckbox()
+        if dialog.exec():
+            text, checked = dialog.get_data()
 
-        stored = self._persist_add(text[0], f'https://cdn.discordapp.com/emojis/{text[0]}.webp?size=56')
+        link = self.create_link(text, checked)
+
+        stored = self._persist_add(text, link)
         if stored:
-            self._add_emoji_item(stored, text[0])
+            self._add_emoji_item(stored, text)
 
         """ if added:
             self.statusBar().showMessage(f"Added {added} item(s). Click an image to copy its text.", 3000) """
+
+
+    def create_link(self, id: int, checked: bool):
+            link = f'https://cdn.discordapp.com/emojis/{id}.webp?size=48'
+            if checked:
+                link += '&animated=true'
+            img_data = requests.get(link).content
+            with open(f'./emoji_gallery/images/{id}.webp', 'wb') as handler:
+                handler.write(img_data)
+            
+            return link
 
     def _add_emoji_item(self, image_path: Path, text: str):
         pix = QPixmap(str(image_path))
