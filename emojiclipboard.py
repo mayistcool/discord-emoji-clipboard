@@ -30,6 +30,9 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QDialogButtonBox
 )
+import ctypes
+ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('company.app.1')
+
 
 class TextWithCheckbox(QDialog):
 
@@ -75,6 +78,8 @@ class EmojiClipboardApp(QMainWindow):
         super().__init__()
         self.setWindowTitle("Emojis")
         self.resize(229, 600)
+
+        self.setWindowIcon(QIcon("discordcliboardicon.ico"))
 
         # --- Storage paths ---
         self.base_dir = Path.cwd() / "emoji_gallery"
