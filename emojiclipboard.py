@@ -1,18 +1,15 @@
 import sys
 import json
-import uuid
-import shutil
 import requests
 from pathlib import Path
 from typing import Optional
+from PIL import Image
+import os
 
 from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QIcon, QPixmap, QAction
+from PyQt6.QtGui import QIcon, QPixmap, QAction, QMovie
 from PyQt6.QtWidgets import (
     QApplication,
-    QFileDialog,
-    QHBoxLayout,
-    QInputDialog,
     QLabel,
     QListView,
     QListWidget,
@@ -20,7 +17,6 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
-    QPushButton,
     QStatusBar,
     QToolBar,
     QVBoxLayout,
@@ -28,7 +24,7 @@ from PyQt6.QtWidgets import (
     QDialog,
     QLineEdit,
     QCheckBox,
-    QDialogButtonBox
+    QDialogButtonBox,
 )
 import ctypes
 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('company.app.1')
@@ -179,8 +175,12 @@ class EmojiClipboardApp(QMainWindow):
         try:
             dest_name = f"{text}"
             dest = self.images_dir / dest_name
-            self.meta[f'{text}.webp'] = {"text": link, "filename": f'{text}.webp'}
-            self._save_meta(self.meta)
+            if "animated" in link:
+                self.meta[f'{text}.gif'] = {"text": link, "filename": f'{text}.gif'}
+                self._save_meta(self.meta)
+            else:
+                self.meta[f'{text}.webp'] = {"text": link, "filename": f'{text}.webp'}
+                self._save_meta(self.meta)
             return dest
         except Exception as e:
             QMessageBox.critical(self, "Save Error", f"Failed to store image: {e}")
@@ -206,6 +206,7 @@ class EmojiClipboardApp(QMainWindow):
                 removed += 1
                 self.meta.pop(filename, None)
                 continue
+            
             self._add_emoji_item(p, text)
         if removed:
             self._save_meta(self.meta)
@@ -222,30 +223,68 @@ class EmojiClipboardApp(QMainWindow):
 
         stored = self._persist_add(text, link)
         if stored:
-            self._add_emoji_item(stored, text)
+            if "animated" in link:
+                self._add_emoji_item(stored, f'{text}.gif')
+            else:
+                self._add_emoji_item(stored, text)
+            
 
     def create_link(self, id: int, checked: bool):
             link = f'https://cdn.discordapp.com/emojis/{id}.webp?size=48'
+            
             if checked:
                 link += '&animated=true'
+
             img_data = requests.get(link).content
             with open(f'./emoji_gallery/images/{id}.webp', 'wb') as handler:
                 handler.write(img_data)
             
+            if checked:
+                img = Image.open(f'./emoji_gallery/images/{id}.webp')
+                img.info.pop('background', None)
+                img.save(f'./emoji_gallery/images/{id}.gif', 'gif', save_all=True)
+                os.remove(f'./emoji_gallery/images/{id}.webp')
+                
+
             return link
 
     def _add_emoji_item(self, image_path: Path, text: str):
-        pix = QPixmap(str(image_path))
-        if pix.isNull():
-            QMessageBox.warning(self, "Invalid image", f"Could not load: {image_path}")
-            return
-        icon = QIcon(pix)
-        item = QListWidgetItem(icon, "")
+        if ".gif" in text:
+            movie = QMovie(str(image_path))
+            label = QLabel()
+            label.setStyleSheet("background: transparent;")
+            try:
+                movie.setBackgroundColor(Qt.transparent)  # available in Qt
+            except AttributeError:
+                pass
+
+            label.setMovie(movie)
+            movie.start()
+
+            # Create a QListWidgetItem (just a container)
+            item = QListWidgetItem()
+            self.list.addItem(item)
+
+            # Match item size to gif size
+            item.setSizeHint(QSize(60, 60))
+            item.setData(Qt.ItemDataRole.UserRole, text)
+            item.setData(Qt.ItemDataRole.UserRole + 1, str(image_path))
+
+            # Put the label (with the movie) into the item
+            self.list.setItemWidget(item, label)
+            
+        else:
+            pix = QPixmap(str(image_path))
+            if pix.isNull():
+                QMessageBox.warning(self, "Invalid image", f"Could not load: {image_path}")
+                return
+            icon = QIcon(pix)
+            item = QListWidgetItem(icon, "")
         # Store the clipboard text and stored path in roles
-        item.setData(Qt.ItemDataRole.UserRole, text)
-        item.setData(Qt.ItemDataRole.UserRole + 1, str(image_path))
-        item.setSizeHint(QSize(60, 60))
-        self.list.addItem(item)
+            item.setData(Qt.ItemDataRole.UserRole, text)
+            item.setData(Qt.ItemDataRole.UserRole + 1, str(image_path))
+            item.setSizeHint(QSize(60, 60))
+            self.list.addItem(item)
 
     def copy_item_text(self, item: QListWidgetItem):
         for filename, payload in list(self.meta.items()):
