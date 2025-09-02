@@ -226,9 +226,9 @@ class EmojiClipboardApp(QMainWindow):
         stored = self._persist_add(text, link)
         if stored:
             if "animated" in link:
-                self._add_emoji_item(stored, f'{text}.gif')
+                self._add_emoji_item(f'{stored}.gif', f'{text}.gif')
             else:
-                self._add_emoji_item(stored, text)
+                self._add_emoji_item(f'{stored}.webp', f'{text}.webp')
             
 
     def create_link(self, id: int, checked: bool):
