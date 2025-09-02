@@ -73,8 +73,8 @@ class EmojiClipboardApp(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Emoji Clipboard Gallery")
-        self.resize(860, 560)
+        self.setWindowTitle("Emojis")
+        self.resize(229, 600)
 
         # --- Storage paths ---
         self.base_dir = Path.cwd() / "emoji_gallery"
@@ -87,19 +87,35 @@ class EmojiClipboardApp(QMainWindow):
         # --- UI ---
         central = QWidget(self)
         self.setCentralWidget(central)
+        self.setStyleSheet(
+            """
+            background-color: #282b30;
+            """
+        )
         layout = QVBoxLayout(central)
-        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setContentsMargins(12, 0, 12, 0)
         layout.setSpacing(8)
 
         self.toolbar = QToolBar("Main")
         self.toolbar.setMovable(False)
+        self.toolbar.setStyleSheet(
+            """
+            QToolBar {
+                background-color: #282b30;
+                border: 0px;
+            }
+            QToolButton:hover { 
+                background-color: #424549;
+            }
+            """
+        )
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
 
-        add_act = QAction("Add Images", self)
+        add_act = QAction("Add", self)
         add_act.triggered.connect(self.add_images)
         self.toolbar.addAction(add_act)
 
-        remove_act = QAction("Remove Selected", self)
+        remove_act = QAction("Remove Selection", self)
         remove_act.triggered.connect(self.remove_selected)
         self.toolbar.addAction(remove_act)
 
@@ -109,23 +125,30 @@ class EmojiClipboardApp(QMainWindow):
 
         self.list = QListWidget(self)
         self.list.setViewMode(QListView.ViewMode.IconMode)
-        self.list.setIconSize(QSize(96, 96))
+        self.list.setIconSize(QSize(60, 60))
         self.list.setResizeMode(QListView.ResizeMode.Adjust)
         self.list.setMovement(QListView.Movement.Static)
         self.list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
-        self.list.setSpacing(12)
+        self.list.setSpacing(6)
         self.list.itemClicked.connect(self.copy_item_text)
         self.list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list.customContextMenuRequested.connect(self.show_context_menu)
+        self.list.setStyleSheet(
+            """
+            QListWidget {
+                background-color: #424549;
+                border-radius: 10px;
+            }
+            QScrollBar:vertical {
+                border: 0px;
+                background: #424549;
+                width: 0px;
+            }
+            """
+        )
         layout.addWidget(self.list, 1)
 
         self.setStatusBar(QStatusBar(self))
-
-        hint = QLabel(
-            "➕ Click ‘Add Images’ to choose emoji images. Your selections are saved and reloaded automatically."
-        )
-        hint.setStyleSheet("color: #666;")
-        layout.addWidget(hint)
 
         # Load persisted items
         self._load_all()
@@ -152,19 +175,6 @@ class EmojiClipboardApp(QMainWindow):
         with tmp.open("w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         tmp.replace(self.meta_file)
-
-    """ def _persist_add(self, source_path: Path, text: str, filename: str) -> Optional[Path]:
-        try:
-            ext = source_path.suffix.lower() or ".png"
-            dest_name = f"{filename}"
-            dest = self.images_dir / dest_name
-            shutil.copy2(source_path, dest)
-            self.meta[dest_name] = {"text": text, "filename": filename}
-            self._save_meta(self.meta)
-            return dest
-        except Exception as e:
-            QMessageBox.critical(self, "Save Error", f"Failed to store image: {e}")
-            return None """
         
     def _persist_add(self, text: str, link: str) -> Optional[Path]:
         try:
