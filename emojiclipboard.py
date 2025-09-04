@@ -4,7 +4,7 @@ import requests
 from pathlib import Path
 from typing import Optional
 from PIL import Image
-import os
+from io import BytesIO
 
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QPixmap, QAction, QMovie
@@ -72,6 +72,7 @@ class EmojiClipboardApp(QMainWindow):
         self.setWindowIcon(QIcon("./assets/discordcliboardicon.ico"))
 
         # --- Storage paths ---
+        self.assets_dir = Path.cwd() / "assets"
         self.base_dir = Path.cwd() / "emoji_gallery"
         self.images_dir = self.base_dir / "images"
         self.meta_file = self.base_dir / "metadata.json"
@@ -237,16 +238,16 @@ class EmojiClipboardApp(QMainWindow):
             if checked:
                 link += '&animated=true'
 
-            img_data = requests.get(link).content
-            with open(f'./emoji_gallery/images/{id}.webp', 'wb') as handler:
-                handler.write(img_data)
+            img = Image.open(BytesIO(requests.get(link).content))
+
+            """ with open(f'./emoji_gallery/images/{id}.webp', 'wb') as handler:
+                handler.write(img_data) """
             
             if checked:
-                img = Image.open(f'./emoji_gallery/images/{id}.webp')
                 img.info.pop('background', None)
-                img.save(f'./emoji_gallery/images/{id}.gif', 'gif', save_all=True)
-                os.remove(f'./emoji_gallery/images/{id}.webp')
-                
+                img.save(f'./emoji_gallery/images/{id}.gif', 'gif', save_all=True, disposal=2)
+            else:
+                img.save(f'./emoji_gallery/images/{id}.webp', 'webp', save_all=True)
 
             return link
 
