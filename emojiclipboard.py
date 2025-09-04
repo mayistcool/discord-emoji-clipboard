@@ -26,8 +26,6 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QDialogButtonBox,
 )
-import ctypes
-ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('company.app.1')
 
 
 class TextWithCheckbox(QDialog):
